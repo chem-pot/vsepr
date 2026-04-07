@@ -189,10 +189,10 @@ const MOLECULES=[
  tag:'bent',bp:2,share:3,lp_total:4,center:0,centerLP:1,
  desc:'결합쌍 2 | 공유 전자쌍 3 (N=O 이중결합) | 비공유 전자쌍 4 (N 1쌍+F 3쌍)',
  example:'F–N=O. N이 중심원자. 이중결합 포함. N에 비공유 전자쌍 1쌍.',
- atoms:(()=>{const a=110*D2R;return[
+ atoms:(()=>{const h=110/2*D2R;return[
    {el:'N',color:0x3377ee,x:0,y:0,z:0},
-   {el:'F',color:0x00bbbb,x:-1.75*Math.cos(a/2),y:-1.75*Math.sin(a/2),z:0},
-   {el:'O',color:0xff3333,x:1.75*Math.cos(a/2),y:-1.75*Math.sin(a/2),z:0},
+   {el:'F',color:0x00bbbb,x:-1.75*Math.sin(h),y:-1.75*Math.cos(h),z:0},
+   {el:'O',color:0xff3333,x: 1.75*Math.sin(h),y:-1.75*Math.cos(h),z:0},
  ];})(),bonds:[[0,1],[0,2]],doubleBonds:[[0,2]],
  lpDirs:[new THREE.Vector3(0,1,0)]},
 
