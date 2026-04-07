@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VSEPR 분자 구조 3D 시뮬레이션</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Apple SD Gothic Neo',sans-serif;background:#f0f4f8;color:#222;}
+.wrap{max-width:960px;margin:0 auto;padding:1.2rem;}
+.hdr{text-align:center;margin-bottom:1rem;}
+.hdr h1{font-size:20px;font-weight:600;color:#1a2a4a;margin-bottom:4px;}
+.hdr p{font-size:13px;color:#666;}
+.cats{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px;}
+.cat-btn{padding:5px 15px;border-radius:20px;border:1px solid #ccc;background:#fff;font-size:12px;font-weight:600;cursor:pointer;color:#555;transition:all .15s;}
+.cat-btn:hover{background:#e8f0fb;}
+.cat-btn.active{background:#dbeafe;color:#1e40af;border-color:#3b82f6;}
+.mol-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(95px,1fr));gap:6px;margin-bottom:1rem;min-height:44px;}
+.mol-btn{background:#fff;border:1px solid #ddd;border-radius:10px;padding:7px 4px;cursor:pointer;text-align:center;transition:all .15s;}
+.mol-btn:hover{background:#f0f7ff;border-color:#aac;}
+.mol-btn.active{border:2px solid #3b82f6;background:#dbeafe;}
+.mol-btn .fm{font-size:13px;font-weight:600;color:#1a2a4a;margin-bottom:1px;}
+.mol-btn .sh{font-size:10px;color:#888;}
+.main{display:grid;grid-template-columns:1fr 285px;gap:1rem;}
+@media(max-width:650px){.main{grid-template-columns:1fr;}}
+#canvasWrap{position:relative;}
+canvas{width:100%;border-radius:12px;border:1px solid #d1dae8;background:#f4f7fb;display:block;cursor:grab;}
+canvas:active{cursor:grabbing;}
+#labelLayer{position:absolute;top:0;left:0;pointer-events:none;overflow:hidden;}
+.atom-label{
+  position:absolute;
+  transform:translate(-50%,-50%);
+  font-weight:700;
+  color:#fff;
+  text-shadow:
+    -1px -1px 0 rgba(0,0,0,.85),
+     1px -1px 0 rgba(0,0,0,.85),
+    -1px  1px 0 rgba(0,0,0,.85),
+     1px  1px 0 rgba(0,0,0,.85),
+    0 0 6px rgba(0,0,0,.6);
+  white-space:nowrap;
+  pointer-events:none;
+  line-height:1;
+  letter-spacing:-.3px;
+}
+.atom-label.dark{
+  color:#111;
+  text-shadow:
+    -1px -1px 0 rgba(255,255,255,.9),
+     1px -1px 0 rgba(255,255,255,.9),
+    -1px  1px 0 rgba(255,255,255,.9),
+     1px  1px 0 rgba(255,255,255,.9),
+    0 0 6px rgba(255,255,255,.7);
+}
+.panel{display:flex;flex-direction:column;gap:8px;}
+.card{background:#fff;border:1px solid #e0e8f0;border-radius:12px;padding:.85rem 1rem;}
+.card h3{font-size:10px;font-weight:600;color:#888;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em;}
+.card .val{font-size:17px;font-weight:600;color:#1a2a4a;}
+.card .sub{font-size:12px;color:#666;margin-top:3px;line-height:1.6;}
+.ep-row{display:flex;gap:5px;flex-wrap:wrap;margin-top:4px;}
+.ep-tag{font-size:11px;padding:2px 8px;border-radius:12px;font-weight:600;}
+.tag-bond{background:#dbeafe;color:#1e40af;}
+.tag-lp{background:#fef3c7;color:#92400e;}
+.tag-share{background:#d1fae5;color:#065f46;}
+.shape-tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:12px;font-weight:600;margin-top:4px;}
+.st-linear{background:#dbeafe;color:#1e40af;}
+.st-bent{background:#fef3c7;color:#92400e;}
+.st-trigplanar{background:#d1fae5;color:#065f46;}
+.st-tetrahedral{background:#ede9fe;color:#4c1d95;}
+.leg{display:flex;flex-direction:column;gap:5px;}
+.leg-item{display:flex;align-items:center;gap:7px;font-size:12px;color:#555;}
+.leg-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;border:1px solid rgba(0,0,0,.15);}
+.toggle-row{display:flex;align-items:center;gap:8px;margin-top:2px;}
+.toggle-label{font-size:12px;color:#555;}
+.toggle{position:relative;width:36px;height:20px;flex-shrink:0;}
+.toggle input{opacity:0;width:0;height:0;}
+.toggle-slider{position:absolute;inset:0;background:#ccc;border-radius:10px;cursor:pointer;transition:.2s;}
+.toggle-slider:before{content:'';position:absolute;width:14px;height:14px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s;}
+.toggle input:checked+.toggle-slider{background:#3b82f6;}
+.toggle input:checked+.toggle-slider:before{transform:translateX(16px);}
+.hint{font-size:11px;color:#aaa;text-align:center;margin-top:5px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="hdr">
+  <h1>VSEPR 분자 구조 3D 시뮬레이션</h1>
+  <p>분자를 선택하고 드래그하여 3D 구조를 관찰하세요</p>
+</div>
+<div class="cats" id="cats"></div>
+<div class="mol-grid" id="molGrid"></div>
+<div class="main">
+  <div id="canvasWrap">
+    <canvas id="canvas" height="400"></canvas>
+    <div id="labelLayer"></div>
+    <p class="hint">드래그: 회전 &nbsp;|&nbsp; 스크롤: 확대·축소</p>
+  </div>
+  <div class="panel" id="panel"></div>
+</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const D2R=Math.PI/180;
+const RADII={H:.31,Be:.96,B:.84,C:.76,N:.71,O:.66,F:.57,Cl:.99,S:1.04};
+function R(el){return(RADII[el]||0.75)*0.85;}
+
+/* H2O sp3 비공유 전자쌍 방향 계산
+   결합면: xz (H들이 y=아래, x=±방향)
+   sp3 사면체에서 비공유쌍 2개는 위쪽, O-H 결합과 교차
+   실제로 2개 LP는 결합면에서 ±z 방향으로 틸트됨 */
+const H2O_HALF=104.5/2*D2R;
+// H 결합 방향 (y아래, x±)
+// LP 방향: y위쪽으로 올라가되, z방향으로 앞뒤 교차
+// 이상적 sp3(109.5°) 기준: LP들이 H와 정사면체를 이룸
+// H1=(sin52.75, -cos52.75, 0), H2=(-sin52.75,-cos52.75,0)
+// LP1: 위쪽+앞, LP2: 위쪽+뒤 → 4벡터가 정사면체 꼭짓점
+const sp3lp1=new THREE.Vector3(0, Math.cos(52.75*D2R),  Math.sin(52.75*D2R)).normalize();
+const sp3lp2=new THREE.Vector3(0, Math.cos(52.75*D2R), -Math.sin(52.75*D2R)).normalize();
+
+const MOLECULES=[
+{cat:'직선형',formula:'BeCl₂',name:'염화베릴륨',shape:'직선형',angle:'180°',
+ tag:'linear',bp:2,share:2,lp_total:6,center:0,centerLP:0,
+ desc:'결합쌍 2 | 공유 전자쌍 2 | 비공유 전자쌍 6 (Cl 각 3쌍)',
+ example:'CO₂와 동일 구조. 중심 Be에 비공유 전자쌍 없음 → 무극성.',
+ atoms:[
+   {el:'Be',color:0xffaa33,x:0,y:0,z:0},
+   {el:'Cl',color:0x22cc55,x:2.1,y:0,z:0},
+   {el:'Cl',color:0x22cc55,x:-2.1,y:0,z:0},
+ ],bonds:[[0,1],[0,2]]},
+
+{cat:'직선형',formula:'BeF₂',name:'플루오린화베릴륨',shape:'직선형',angle:'180°',
+ tag:'linear',bp:2,share:2,lp_total:6,center:0,centerLP:0,
+ desc:'결합쌍 2 | 공유 전자쌍 2 | 비공유 전자쌍 6 (F 각 3쌍)',
+ example:'BeCl₂와 동일 구조. F가 더 전기음성적.',
+ atoms:[
+   {el:'Be',color:0xffaa33,x:0,y:0,z:0},
+   {el:'F', color:0x00bbbb,x:1.9,y:0,z:0},
+   {el:'F', color:0x00bbbb,x:-1.9,y:0,z:0},
+ ],bonds:[[0,1],[0,2]]},
+
+{cat:'직선형',formula:'HCN',name:'사이안화수소',shape:'직선형',angle:'180°',
+ tag:'linear',bp:2,share:4,lp_total:1,center:1,centerLP:0,
+ desc:'결합쌍 2 | 공유 전자쌍 4 (C≡N 삼중결합) | 비공유 전자쌍 1 (N 1쌍)',
+ example:'H–C≡N. 삼중결합 포함. N에 비공유 전자쌍 1쌍.',
+ atoms:[
+   {el:'H',color:0xcccccc,x:-1.9,y:0,z:0},
+   {el:'C',color:0x666666,x:0,y:0,z:0},
+   {el:'N',color:0x3377ee,x:1.8,y:0,z:0},
+ ],bonds:[[0,1],[1,2]],tripleBonds:[[1,2]]},
+
+{cat:'직선형',formula:'FCN',name:'플루오린화사이안',shape:'직선형',angle:'180°',
+ tag:'linear',bp:2,share:4,lp_total:4,center:1,centerLP:0,
+ desc:'결합쌍 2 | 공유 전자쌍 4 (C≡N 삼중결합) | 비공유 전자쌍 4 (F 3쌍+N 1쌍)',
+ example:'F–C≡N. HCN과 구조 동일. 양 끝 원자에 비공유 전자쌍 존재.',
+ atoms:[
+   {el:'F',color:0x00bbbb,x:-1.8,y:0,z:0},
+   {el:'C',color:0x666666,x:0,y:0,z:0},
+   {el:'N',color:0x3377ee,x:1.8,y:0,z:0},
+ ],bonds:[[0,1],[1,2]],tripleBonds:[[1,2]]},
+
+{cat:'굽은형',formula:'H₂O',name:'물',shape:'굽은형',angle:'104.5°',
+ tag:'bent',bp:2,share:2,lp_total:2,center:0,centerLP:2,
+ desc:'결합쌍 2 | 공유 전자쌍 2 | 비공유 전자쌍 2 (O 2쌍)',
+ example:'O는 sp³ 혼성. 비공유 전자쌍 2개가 O-H 결합과 교차 배치(사면체). 극성 분자.',
+ /* H들: x±, y아래. LP들: y위, z±(앞뒤) → 4방향이 정사면체 */
+ atoms:[
+   {el:'O',color:0xff3333,x:0,y:0,z:0},
+   {el:'H',color:0xcccccc,x: 1.45*Math.sin(H2O_HALF),y:-1.45*Math.cos(H2O_HALF),z:0},
+   {el:'H',color:0xcccccc,x:-1.45*Math.sin(H2O_HALF),y:-1.45*Math.cos(H2O_HALF),z:0},
+ ],bonds:[[0,1],[0,2]],
+ lpDirs:[sp3lp1,sp3lp2]},
+
+{cat:'굽은형',formula:'H₂S',name:'황화수소',shape:'굽은형',angle:'92°',
+ tag:'bent',bp:2,share:2,lp_total:2,center:0,centerLP:2,
+ desc:'결합쌍 2 | 공유 전자쌍 2 | 비공유 전자쌍 2 (S 2쌍)',
+ example:'H₂O와 같은 굽은형이지만 결합각 92°로 더 좁음. S는 3주기라 p 오비탈 결합.',
+ atoms:(()=>{const a=92/2*D2R;return[
+   {el:'S',color:0xddbb00,x:0,y:0,z:0},
+   {el:'H',color:0xcccccc,x: 1.55*Math.sin(a),y:-1.55*Math.cos(a),z:0},
+   {el:'H',color:0xcccccc,x:-1.55*Math.sin(a),y:-1.55*Math.cos(a),z:0},
+ ];})(),bonds:[[0,1],[0,2]],
+ lpDirs:[
+   new THREE.Vector3(0, Math.cos(52.75*D2R),  Math.sin(52.75*D2R)).normalize(),
+   new THREE.Vector3(0, Math.cos(52.75*D2R), -Math.sin(52.75*D2R)).normalize(),
+ ]},
+
+{cat:'굽은형',formula:'FNO',name:'플루오린화나이트로실',shape:'굽은형',angle:'110°',
+ tag:'bent',bp:2,share:3,lp_total:4,center:0,centerLP:1,
+ desc:'결합쌍 2 | 공유 전자쌍 3 (N=O 이중결합) | 비공유 전자쌍 4 (N 1쌍+F 3쌍)',
+ example:'F–N=O. N이 중심원자. 이중결합 포함. N에 비공유 전자쌍 1쌍.',
+ atoms:(()=>{const a=110*D2R;return[
+   {el:'N',color:0x3377ee,x:0,y:0,z:0},
+   {el:'F',color:0x00bbbb,x:-1.75*Math.cos(a/2),y:-1.75*Math.sin(a/2),z:0},
+   {el:'O',color:0xff3333,x:1.75*Math.cos(a/2),y:-1.75*Math.sin(a/2),z:0},
+ ];})(),bonds:[[0,1],[0,2]],doubleBonds:[[0,2]],
+ lpDirs:[new THREE.Vector3(0,1,0)]},
+
+{cat:'평면삼각형',formula:'BH₃',name:'삼수소화붕소',shape:'평면삼각형',angle:'120°',
+ tag:'trigplanar',bp:3,share:3,lp_total:0,center:0,centerLP:0,
+ desc:'결합쌍 3 | 공유 전자쌍 3 | 비공유 전자쌍 0',
+ example:'중심 B 비공유 전자쌍 없음. 루이스 산.',
+ atoms:[
+   {el:'B',color:0xff8800,x:0,y:0,z:0},
+   {el:'H',color:0xcccccc,x:1.7,y:0,z:0},
+   {el:'H',color:0xcccccc,x:1.7*Math.cos(2*Math.PI/3),y:0,z:1.7*Math.sin(2*Math.PI/3)},
+   {el:'H',color:0xcccccc,x:1.7*Math.cos(4*Math.PI/3),y:0,z:1.7*Math.sin(4*Math.PI/3)},
+ ],bonds:[[0,1],[0,2],[0,3]]},
+
+{cat:'평면삼각형',formula:'BF₃',name:'삼플루오린화붕소',shape:'평면삼각형',angle:'120°',
+ tag:'trigplanar',bp:3,share:3,lp_total:9,center:0,centerLP:0,
+ desc:'결합쌍 3 | 공유 전자쌍 3 | 비공유 전자쌍 9 (F 각 3쌍)',
+ example:'중심 B 비공유 전자쌍 없음. 루이스 산.',
+ atoms:[
+   {el:'B',color:0xff8800,x:0,y:0,z:0},
+   {el:'F',color:0x00bbbb,x:1.9,y:0,z:0},
+   {el:'F',color:0x00bbbb,x:1.9*Math.cos(2*Math.PI/3),y:0,z:1.9*Math.sin(2*Math.PI/3)},
+   {el:'F',color:0x00bbbb,x:1.9*Math.cos(4*Math.PI/3),y:0,z:1.9*Math.sin(4*Math.PI/3)},
+ ],bonds:[[0,1],[0,2],[0,3]]},
+
+{cat:'평면삼각형',formula:'BCl₃',name:'삼염화붕소',shape:'평면삼각형',angle:'120°',
+ tag:'trigplanar',bp:3,share:3,lp_total:9,center:0,centerLP:0,
+ desc:'결합쌍 3 | 공유 전자쌍 3 | 비공유 전자쌍 9 (Cl 각 3쌍)',
+ example:'BF₃·BH₃와 동일 구조.',
+ atoms:[
+   {el:'B', color:0xff8800,x:0,y:0,z:0},
+   {el:'Cl',color:0x22cc55,x:2.0,y:0,z:0},
+   {el:'Cl',color:0x22cc55,x:2.0*Math.cos(2*Math.PI/3),y:0,z:2.0*Math.sin(2*Math.PI/3)},
+   {el:'Cl',color:0x22cc55,x:2.0*Math.cos(4*Math.PI/3),y:0,z:2.0*Math.sin(4*Math.PI/3)},
+ ],bonds:[[0,1],[0,2],[0,3]]},
+
+{cat:'평면삼각형',formula:'CH₂O',name:'폼알데하이드',shape:'평면삼각형',angle:'120°',
+ tag:'trigplanar',bp:3,share:4,lp_total:2,center:0,centerLP:0,
+ desc:'결합쌍 3 | 공유 전자쌍 4 (C=O 이중결합) | 비공유 전자쌍 2 (O 2쌍)',
+ example:'C=O 이중결합 포함. 중심 C 비공유 전자쌍 없음. 극성 분자.',
+ atoms:[
+   {el:'C',color:0x666666,x:0,y:0,z:0},
+   {el:'O',color:0xff3333,x:1.9,y:0,z:0},
+   {el:'H',color:0xcccccc,x:-0.9,y:0,z:1.5},
+   {el:'H',color:0xcccccc,x:-0.9,y:0,z:-1.5},
+ ],bonds:[[0,1],[0,2],[0,3]],doubleBonds:[[0,1]]},
+
+{cat:'삼각뿔/정사면체',formula:'NH₃',name:'암모니아',shape:'삼각뿔형',angle:'107°',
+ tag:'tetrahedral',bp:3,share:3,lp_total:1,center:0,centerLP:1,
+ desc:'결합쌍 3 | 공유 전자쌍 3 | 비공유 전자쌍 1 (N 1쌍)',
+ example:'비공유 전자쌍 1개 → 109.5°보다 좁아짐. 극성 분자.',
+ atoms:[
+   {el:'N',color:0x3377ee,x:0,y:0.3,z:0},
+   {el:'H',color:0xcccccc,x:1.3,y:-0.7,z:0},
+   {el:'H',color:0xcccccc,x:-0.65,y:-0.7,z:1.13},
+   {el:'H',color:0xcccccc,x:-0.65,y:-0.7,z:-1.13},
+ ],bonds:[[0,1],[0,2],[0,3]],
+ lpDirs:[new THREE.Vector3(0,1,0)]},
+
+{cat:'삼각뿔/정사면체',formula:'CH₄',name:'메테인',shape:'정사면체형',angle:'109.5°',
+ tag:'tetrahedral',bp:4,share:4,lp_total:0,center:0,centerLP:0,
+ desc:'결합쌍 4 | 공유 전자쌍 4 | 비공유 전자쌍 0',
+ example:'완전 대칭. 무극성.',
+ atoms:[
+   {el:'C',color:0x666666,x:0,y:0,z:0},
+   {el:'H',color:0xcccccc,x:1.1,y:1.1,z:1.1},
+   {el:'H',color:0xcccccc,x:-1.1,y:-1.1,z:1.1},
+   {el:'H',color:0xcccccc,x:-1.1,y:1.1,z:-1.1},
+   {el:'H',color:0xcccccc,x:1.1,y:-1.1,z:-1.1},
+ ],bonds:[[0,1],[0,2],[0,3],[0,4]]},
+
+{cat:'삼각뿔/정사면체',formula:'CCl₄',name:'사염화탄소',shape:'정사면체형',angle:'109.5°',
+ tag:'tetrahedral',bp:4,share:4,lp_total:12,center:0,centerLP:0,
+ desc:'결합쌍 4 | 공유 전자쌍 4 | 비공유 전자쌍 12 (Cl 각 3쌍)',
+ example:'극성 결합이지만 대칭 구조 → 무극성 분자.',
+ atoms:[
+   {el:'C', color:0x666666,x:0,y:0,z:0},
+   {el:'Cl',color:0x22cc55,x:1.5,y:1.5,z:1.5},
+   {el:'Cl',color:0x22cc55,x:-1.5,y:-1.5,z:1.5},
+   {el:'Cl',color:0x22cc55,x:-1.5,y:1.5,z:-1.5},
+   {el:'Cl',color:0x22cc55,x:1.5,y:-1.5,z:-1.5},
+ ],bonds:[[0,1],[0,2],[0,3],[0,4]]},
+
+{cat:'삼각뿔/정사면체',formula:'CH₂Cl₂',name:'다이클로로메테인',shape:'정사면체형',angle:'109.5°',
+ tag:'tetrahedral',bp:4,share:4,lp_total:6,center:0,centerLP:0,
+ desc:'결합쌍 4 | 공유 전자쌍 4 | 비공유 전자쌍 6 (Cl 각 3쌍)',
+ example:'정사면체 구조이지만 비대칭 → 극성 분자.',
+ atoms:[
+   {el:'C', color:0x666666,x:0,y:0,z:0},
+   {el:'H', color:0xcccccc,x:1.1,y:1.1,z:1.1},
+   {el:'H', color:0xcccccc,x:-1.1,y:-1.1,z:1.1},
+   {el:'Cl',color:0x22cc55,x:-1.5,y:1.5,z:-1.5},
+   {el:'Cl',color:0x22cc55,x:1.5,y:-1.5,z:-1.5},
+ ],bonds:[[0,1],[0,2],[0,3],[0,4]]},
+];
+
+const CATS=[...new Set(MOLECULES.map(m=>m.cat))];
+let curCat=CATS[0],curIdx=0,showLP=false;
+
+const catsEl=document.getElementById('cats');
+const gridEl=document.getElementById('molGrid');
+CATS.forEach(c=>{
+  const b=document.createElement('button');
+  b.className='cat-btn'+(c===curCat?' active':'');
+  b.textContent=c;
+  b.onclick=()=>{curCat=c;curIdx=0;renderCats();renderGrid();selectMol(0);};
+  catsEl.appendChild(b);
+});
+function renderCats(){catsEl.querySelectorAll('.cat-btn').forEach(b=>b.classList.toggle('active',b.textContent===curCat));}
+function getMols(){return MOLECULES.filter(m=>m.cat===curCat);}
+function renderGrid(){
+  gridEl.innerHTML='';
+  getMols().forEach((m,i)=>{
+    const b=document.createElement('div');
+    b.className='mol-btn'+(i===curIdx?' active':'');
+    b.innerHTML=`<div class="fm">${m.formula}</div><div class="sh">${m.shape}</div>`;
+    b.onclick=()=>selectMol(i);
+    gridEl.appendChild(b);
+  });
+}
+
+const canvas=document.getElementById('canvas');
+const labelLayer=document.getElementById('labelLayer');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true});
+renderer.setPixelRatio(window.devicePixelRatio);
+renderer.setClearColor(0xf4f7fb,1);
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(45,1,.1,100);
+camera.position.set(0,0,10);
+scene.add(new THREE.AmbientLight(0xffffff,.65));
+const dl=new THREE.DirectionalLight(0xffffff,.8);dl.position.set(5,8,5);scene.add(dl);
+const dl2=new THREE.DirectionalLight(0xaaccff,.3);dl2.position.set(-5,-3,-3);scene.add(dl2);
+
+let molGroup=null,isDrag=false,lx=0,ly=0,rotX=.3,rotY=.4,scl=1;
+let lpMeshes=[],atomData=[];
+
+function cyl(a,b,col,rad){
+  const s=new THREE.Vector3(a.x,a.y,a.z),e=new THREE.Vector3(b.x,b.y,b.z);
+  const d=new THREE.Vector3().subVectors(e,s),len=d.length();
+  const mid=new THREE.Vector3().addVectors(s,e).multiplyScalar(.5);
+  const g=new THREE.CylinderGeometry(rad,rad,len,16);
+  const mesh=new THREE.Mesh(g,new THREE.MeshPhongMaterial({color:col,shininess:40}));
+  mesh.position.copy(mid);mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.normalize());
+  return mesh;
+}
+
+function buildLP(mol,group){
+  lpMeshes=[];
+  if(!mol.centerLP) return;
+  const c=mol.atoms[mol.center];
+  const cr=R(c.el);
+  const dirs=(mol.lpDirs&&mol.lpDirs.length?mol.lpDirs:[new THREE.Vector3(0,1,0)]).slice(0,mol.centerLP);
+  dirs.forEach(dir=>{
+    const dn=dir.clone().normalize();
+    const geo=new THREE.SphereGeometry(cr*.88,24,24);
+    const mat=new THREE.MeshPhongMaterial({color:0xffdd00,transparent:true,opacity:.45,shininess:10,depthWrite:false});
+    const mesh=new THREE.Mesh(geo,mat);
+    const dist=cr*1.3;
+    mesh.position.set(c.x+dn.x*dist,c.y+dn.y*dist,c.z+dn.z*dist);
+    mesh.visible=showLP;
+    group.add(mesh);
+    lpMeshes.push(mesh);
+  });
+}
+
+function buildMol(mol){
+  if(molGroup) scene.remove(molGroup);
+  molGroup=new THREE.Group();
+  atomData=[];
+
+  mol.bonds.forEach(([i,j])=>{
+    const a=mol.atoms[i],b=mol.atoms[j];
+    const isT=mol.tripleBonds&&mol.tripleBonds.some(t=>t[0]===i&&t[1]===j);
+    const isD=mol.doubleBonds&&mol.doubleBonds.some(t=>(t[0]===i&&t[1]===j)||(t[0]===j&&t[1]===i));
+    if(isT||isD){
+      /* 결합 방향 벡터 */
+      const dir=new THREE.Vector3(b.x-a.x,b.y-a.y,b.z-a.z).normalize();
+      /* 결합 방향에 수직인 벡터: y축과 평행하면 z축 기준, 아니면 y축 기준 */
+      const up=Math.abs(dir.dot(new THREE.Vector3(0,1,0)))<0.9
+        ?new THREE.Vector3(0,1,0)
+        :new THREE.Vector3(0,0,1);
+      const perp=new THREE.Vector3().crossVectors(dir,up).normalize();
+      if(isT){
+        /* 삼중결합: 중심 1개 + 양쪽 2개 */
+        const offsets=[0,-0.18,0.18];
+        offsets.forEach(d=>{
+          const pa={x:a.x+perp.x*d,y:a.y+perp.y*d,z:a.z+perp.z*d};
+          const pb={x:b.x+perp.x*d,y:b.y+perp.y*d,z:b.z+perp.z*d};
+          molGroup.add(cyl(pa,pb,0xaaaaaa,.07));
+        });
+      } else {
+        /* 이중결합: 양쪽 2개 */
+        [-0.13,0.13].forEach(d=>{
+          const pa={x:a.x+perp.x*d,y:a.y+perp.y*d,z:a.z+perp.z*d};
+          const pb={x:b.x+perp.x*d,y:b.y+perp.y*d,z:b.z+perp.z*d};
+          molGroup.add(cyl(pa,pb,0xaaaaaa,.09));
+        });
+      }
+    } else {
+      molGroup.add(cyl(a,b,0xcccccc,.13));
+    }
+  });
+
+  mol.atoms.forEach(a=>{
+    const r=R(a.el);
+    const geo=new THREE.SphereGeometry(r,32,32);
+    const mat=new THREE.MeshPhongMaterial({color:a.color,shininess:90,specular:0x444444});
+    const mesh=new THREE.Mesh(geo,mat);
+    mesh.position.set(a.x,a.y,a.z);
+    molGroup.add(mesh);
+    atomData.push({localPos:new THREE.Vector3(a.x,a.y,a.z),el:a.el,color:a.color,r});
+  });
+
+  buildLP(mol,molGroup);
+  scene.add(molGroup);
+}
+
+function buildLabelDOM(mol){
+  labelLayer.innerHTML='';
+  mol.atoms.forEach(a=>{
+    const div=document.createElement('div');
+    div.className='atom-label';
+    // 밝기 판별: H·Cl·C·회색 계열은 밝기 따라 결정
+    const rr=(a.color>>16)&0xff, gg=(a.color>>8)&0xff, bb=a.color&0xff;
+    const bright=rr*.299+gg*.587+bb*.114;
+    if(bright>140) div.classList.add('dark');
+    div.textContent=a.el;
+    const fs=Math.max(12,Math.round(10+R(a.el)*9));
+    div.style.fontSize=fs+'px';
+    labelLayer.appendChild(div);
+  });
+}
+
+function updateLabels(){
+  if(!molGroup) return;
+  const cw=canvas.clientWidth,ch=canvas.clientHeight;
+  const lbls=labelLayer.querySelectorAll('.atom-label');
+  atomData.forEach((item,i)=>{
+    const wp=item.localPos.clone();
+    molGroup.localToWorld(wp);
+    const ndc=wp.clone().project(camera);
+    const px=(ndc.x*.5+.5)*cw;
+    const py=(-.5*ndc.y+.5)*ch;
+    if(lbls[i]){lbls[i].style.left=px+'px';lbls[i].style.top=py+'px';}
+  });
+}
+
+function updateLP(){lpMeshes.forEach(m=>m.visible=showLP);}
+
+function updateInfo(mol){
+  const panel=document.getElementById('panel');
+  const seen={};mol.atoms.forEach(a=>{if(!seen[a.el])seen[a.el]=a.color;});
+  const legHtml=Object.entries(seen).map(([el,c])=>{
+    const hex='#'+c.toString(16).padStart(6,'0');
+    return`<div class="leg-item"><div class="leg-dot" style="background:${hex};"></div>${el}</div>`;
+  }).join('');
+  const hasLP=mol.centerLP&&mol.centerLP>0;
+  panel.innerHTML=`
+    <div class="card">
+      <h3>분자식 / 분자명</h3>
+      <div class="val">${mol.formula}</div>
+      <div class="sub">${mol.name}</div>
+    </div>
+    <div class="card">
+      <h3>분자 구조</h3>
+      <div class="val">${mol.shape}</div>
+      <span class="shape-tag st-${mol.tag}">${mol.shape}</span>
+    </div>
+    <div class="card">
+      <h3>결합각</h3>
+      <div class="val">${mol.angle}</div>
+    </div>
+    <div class="card">
+      <h3>전자쌍 정보</h3>
+      <div class="ep-row">
+        <span class="ep-tag tag-bond">결합쌍 ${mol.bp}</span>
+        <span class="ep-tag tag-share">공유 전자쌍 ${mol.share}</span>
+        <span class="ep-tag tag-lp">비공유 전자쌍 ${mol.lp_total}</span>
+      </div>
+      <div class="sub" style="margin-top:6px;">${mol.desc}</div>
+    </div>
+    <div class="card">
+      <h3>특징</h3>
+      <div class="sub">${mol.example}</div>
+    </div>
+    ${hasLP?`<div class="card">
+      <h3>중심원자 비공유 전자쌍</h3>
+      <div class="toggle-row">
+        <label class="toggle"><input type="checkbox" id="lpToggle" ${showLP?'checked':''}><span class="toggle-slider"></span></label>
+        <span class="toggle-label" id="lpLabel">전자 구름 ${showLP?'켜짐':'꺼짐'}</span>
+      </div>
+    </div>`:''}
+    <div class="card">
+      <h3>원소 범례</h3>
+      <div class="leg">${legHtml}</div>
+    </div>`;
+  if(hasLP){
+    document.getElementById('lpToggle').addEventListener('change',e=>{
+      showLP=e.target.checked;updateLP();
+      document.getElementById('lpLabel').textContent='전자 구름 '+(showLP?'켜짐':'꺼짐');
+    });
+  }
+}
+
+function selectMol(i){
+  curIdx=i;
+  gridEl.querySelectorAll('.mol-btn').forEach((b,j)=>b.classList.toggle('active',j===i));
+  const mol=getMols()[i];
+  buildMol(mol);buildLabelDOM(mol);updateInfo(mol);
+  rotX=.3;rotY=.4;scl=1;
+}
+
+function resize(){
+  const wrap=document.getElementById('canvasWrap');
+  const w=wrap.clientWidth,h=Math.min(w*.8,420);
+  renderer.setSize(w,h);camera.aspect=w/h;camera.updateProjectionMatrix();
+  labelLayer.style.width=w+'px';labelLayer.style.height=h+'px';
+}
+window.addEventListener('resize',resize);resize();
+renderGrid();selectMol(0);
+
+canvas.addEventListener('mousedown',e=>{isDrag=true;lx=e.clientX;ly=e.clientY;});
+window.addEventListener('mousemove',e=>{
+  if(!isDrag||!molGroup)return;
+  rotY+=(e.clientX-lx)*.01;rotX+=(e.clientY-ly)*.01;lx=e.clientX;ly=e.clientY;
+});
+window.addEventListener('mouseup',()=>isDrag=false);
+canvas.addEventListener('touchstart',e=>{isDrag=true;lx=e.touches[0].clientX;ly=e.touches[0].clientY;});
+canvas.addEventListener('touchmove',e=>{
+  if(!isDrag||!molGroup)return;
+  rotY+=(e.touches[0].clientX-lx)*.012;rotX+=(e.touches[0].clientY-ly)*.012;
+  lx=e.touches[0].clientX;ly=e.touches[0].clientY;e.preventDefault();
+},{passive:false});
+canvas.addEventListener('touchend',()=>isDrag=false);
+canvas.addEventListener('wheel',e=>{scl=Math.min(2,Math.max(.4,scl-e.deltaY*.001));e.preventDefault();},{passive:false});
+
+(function loop(){
+  requestAnimationFrame(loop);
+  if(molGroup){
+    if(!isDrag)rotY+=.005;
+    molGroup.rotation.x=rotX;molGroup.rotation.y=rotY;molGroup.scale.setScalar(scl);
+  }
+  renderer.render(scene,camera);
+  updateLabels();
+})();
+</script>
+</body>
+</html>
