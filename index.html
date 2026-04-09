@@ -11,10 +11,23 @@ body{font-family:'Apple SD Gothic Neo',sans-serif;background:#f0f4f8;color:#222;
 .hdr{text-align:center;margin-bottom:1rem;}
 .hdr h1{font-size:20px;font-weight:600;color:#1a2a4a;margin-bottom:4px;}
 .hdr p{font-size:13px;color:#666;}
-.cats{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px;}
-.cat-btn{padding:5px 15px;border-radius:20px;border:1px solid #ccc;background:#fff;font-size:12px;font-weight:600;cursor:pointer;color:#555;transition:all .15s;}
+/* 대분류 탭 */
+.tier1{display:flex;gap:8px;margin-bottom:8px;}
+.t1-btn{padding:6px 20px;border-radius:20px;border:1.5px solid #ccc;background:#fff;font-size:13px;font-weight:700;cursor:pointer;color:#555;transition:all .15s;}
+.t1-btn:hover{background:#f0f4ff;}
+.t1-btn.active.flat{background:#d1fae5;color:#065f46;border-color:#34d399;}
+.t1-btn.active.solid{background:#ede9fe;color:#4c1d95;border-color:#7c3aed;}
+/* 소분류 탭 */
+.cats{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;padding:8px 10px;background:#f8fafc;border-radius:10px;border:1px solid #e8edf5;}
+.cat-btn{padding:4px 13px;border-radius:16px;border:1px solid #ccc;background:#fff;font-size:12px;font-weight:600;cursor:pointer;color:#555;transition:all .15s;}
 .cat-btn:hover{background:#e8f0fb;}
 .cat-btn.active{background:#dbeafe;color:#1e40af;border-color:#3b82f6;}
+/* 범례 배너 */
+.tier-legend{display:flex;align-items:center;gap:10px;margin-bottom:8px;font-size:12px;color:#666;}
+.tl-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:12px;font-weight:600;font-size:12px;}
+.tl-flat{background:#d1fae5;color:#065f46;}
+.tl-solid{background:#ede9fe;color:#4c1d95;}
+.tl-sep{color:#ccc;}
 .mol-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(95px,1fr));gap:6px;margin-bottom:1rem;min-height:44px;}
 .mol-btn{background:#fff;border:1px solid #ddd;border-radius:10px;padding:7px 4px;cursor:pointer;text-align:center;transition:all .15s;}
 .mol-btn:hover{background:#f0f7ff;border-color:#aac;}
@@ -87,6 +100,14 @@ canvas:active{cursor:grabbing;}
   <h1>VSEPR 분자 구조 3D 시뮬레이션</h1>
   <p>분자를 선택하고 드래그하여 3D 구조를 관찰하세요</p>
 </div>
+<div class="tier-legend">
+  <span class="tl-badge tl-flat">● 평면형</span>
+  <span>직선형 · 평면삼각형 · 굽은형</span>
+  <span class="tl-sep">|</span>
+  <span class="tl-badge tl-solid">● 입체형</span>
+  <span>정사면체형 · 삼각뿔형</span>
+</div>
+<div class="tier1" id="tier1"></div>
 <div class="cats" id="cats"></div>
 <div class="mol-grid" id="molGrid"></div>
 <div class="main">
@@ -119,7 +140,7 @@ const sp3lp1=new THREE.Vector3(0, Math.cos(52.75*D2R),  Math.sin(52.75*D2R)).nor
 const sp3lp2=new THREE.Vector3(0, Math.cos(52.75*D2R), -Math.sin(52.75*D2R)).normalize();
 
 const MOLECULES=[
-{cat:'직선형',formula:'BeCl₂',name:'염화베릴륨',shape:'직선형',angle:'180°',
+{tier:'flat',cat:'직선형',formula:'BeCl₂',name:'염화베릴륨',shape:'직선형',angle:'180°',
  tag:'linear',bp:2,share:2,lp_total:6,center:0,centerLP:0,
  desc:'결합쌍 2 | 공유 전자쌍 2 | 비공유 전자쌍 6 (Cl 각 3쌍)',
  example:'CO₂와 동일 구조. 중심 Be에 비공유 전자쌍 없음 → 무극성.',
@@ -129,7 +150,7 @@ const MOLECULES=[
    {el:'Cl',color:0x22cc55,x:-2.1,y:0,z:0},
  ],bonds:[[0,1],[0,2]]},
 
-{cat:'직선형',formula:'BeF₂',name:'플루오린화베릴륨',shape:'직선형',angle:'180°',
+{tier:'flat',cat:'직선형',formula:'BeF₂',name:'플루오린화베릴륨',shape:'직선형',angle:'180°',
  tag:'linear',bp:2,share:2,lp_total:6,center:0,centerLP:0,
  desc:'결합쌍 2 | 공유 전자쌍 2 | 비공유 전자쌍 6 (F 각 3쌍)',
  example:'BeCl₂와 동일 구조. F가 더 전기음성적.',
@@ -139,7 +160,7 @@ const MOLECULES=[
    {el:'F', color:0x00bbbb,x:-1.9,y:0,z:0},
  ],bonds:[[0,1],[0,2]]},
 
-{cat:'직선형',formula:'HCN',name:'사이안화수소',shape:'직선형',angle:'180°',
+{tier:'flat',cat:'직선형',formula:'HCN',name:'사이안화수소',shape:'직선형',angle:'180°',
  tag:'linear',bp:2,share:4,lp_total:1,center:1,centerLP:0,
  desc:'결합쌍 2 | 공유 전자쌍 4 (C≡N 삼중결합) | 비공유 전자쌍 1 (N 1쌍)',
  example:'H–C≡N. 삼중결합 포함. N에 비공유 전자쌍 1쌍.',
@@ -149,7 +170,7 @@ const MOLECULES=[
    {el:'N',color:0x3377ee,x:1.8,y:0,z:0},
  ],bonds:[[0,1],[1,2]],tripleBonds:[[1,2]]},
 
-{cat:'직선형',formula:'FCN',name:'플루오린화사이안',shape:'직선형',angle:'180°',
+{tier:'flat',cat:'직선형',formula:'FCN',name:'플루오린화사이안',shape:'직선형',angle:'180°',
  tag:'linear',bp:2,share:4,lp_total:4,center:1,centerLP:0,
  desc:'결합쌍 2 | 공유 전자쌍 4 (C≡N 삼중결합) | 비공유 전자쌍 4 (F 3쌍+N 1쌍)',
  example:'F–C≡N. HCN과 구조 동일. 양 끝 원자에 비공유 전자쌍 존재.',
@@ -159,11 +180,10 @@ const MOLECULES=[
    {el:'N',color:0x3377ee,x:1.8,y:0,z:0},
  ],bonds:[[0,1],[1,2]],tripleBonds:[[1,2]]},
 
-{cat:'굽은형',formula:'H₂O',name:'물',shape:'굽은형',angle:'104.5°',
+{tier:'flat',cat:'굽은형',formula:'H₂O',name:'물',shape:'굽은형',angle:'104.5°',
  tag:'bent',bp:2,share:2,lp_total:2,center:0,centerLP:2,
  desc:'결합쌍 2 | 공유 전자쌍 2 | 비공유 전자쌍 2 (O 2쌍)',
  example:'O는 sp³ 혼성. 비공유 전자쌍 2개가 O-H 결합과 교차 배치(사면체). 극성 분자.',
- /* H들: x±, y아래. LP들: y위, z±(앞뒤) → 4방향이 정사면체 */
  atoms:[
    {el:'O',color:0xff3333,x:0,y:0,z:0},
    {el:'H',color:0xcccccc,x: 1.45*Math.sin(H2O_HALF),y:-1.45*Math.cos(H2O_HALF),z:0},
@@ -171,7 +191,7 @@ const MOLECULES=[
  ],bonds:[[0,1],[0,2]],
  lpDirs:[sp3lp1,sp3lp2]},
 
-{cat:'굽은형',formula:'H₂S',name:'황화수소',shape:'굽은형',angle:'92°',
+{tier:'flat',cat:'굽은형',formula:'H₂S',name:'황화수소',shape:'굽은형',angle:'92°',
  tag:'bent',bp:2,share:2,lp_total:2,center:0,centerLP:2,
  desc:'결합쌍 2 | 공유 전자쌍 2 | 비공유 전자쌍 2 (S 2쌍)',
  example:'H₂O와 같은 굽은형이지만 결합각 92°로 더 좁음. S는 3주기라 p 오비탈 결합.',
@@ -185,7 +205,7 @@ const MOLECULES=[
    new THREE.Vector3(0, Math.cos(52.75*D2R), -Math.sin(52.75*D2R)).normalize(),
  ]},
 
-{cat:'굽은형',formula:'FNO',name:'플루오린화나이트로실',shape:'굽은형',angle:'110°',
+{tier:'flat',cat:'굽은형',formula:'FNO',name:'플루오린화나이트로실',shape:'굽은형',angle:'110°',
  tag:'bent',bp:2,share:3,lp_total:4,center:0,centerLP:1,
  desc:'결합쌍 2 | 공유 전자쌍 3 (N=O 이중결합) | 비공유 전자쌍 4 (N 1쌍+F 3쌍)',
  example:'F–N=O. N이 중심원자. 이중결합 포함. N에 비공유 전자쌍 1쌍.',
@@ -196,7 +216,7 @@ const MOLECULES=[
  ];})(),bonds:[[0,1],[0,2]],doubleBonds:[[0,2]],
  lpDirs:[new THREE.Vector3(0,1,0)]},
 
-{cat:'평면삼각형',formula:'BH₃',name:'삼수소화붕소',shape:'평면삼각형',angle:'120°',
+{tier:'flat',cat:'평면삼각형',formula:'BH₃',name:'삼수소화붕소',shape:'평면삼각형',angle:'120°',
  tag:'trigplanar',bp:3,share:3,lp_total:0,center:0,centerLP:0,
  desc:'결합쌍 3 | 공유 전자쌍 3 | 비공유 전자쌍 0',
  example:'중심 B 비공유 전자쌍 없음. 루이스 산.',
@@ -207,7 +227,7 @@ const MOLECULES=[
    {el:'H',color:0xcccccc,x:1.7*Math.cos(4*Math.PI/3),y:0,z:1.7*Math.sin(4*Math.PI/3)},
  ],bonds:[[0,1],[0,2],[0,3]]},
 
-{cat:'평면삼각형',formula:'BF₃',name:'삼플루오린화붕소',shape:'평면삼각형',angle:'120°',
+{tier:'flat',cat:'평면삼각형',formula:'BF₃',name:'삼플루오린화붕소',shape:'평면삼각형',angle:'120°',
  tag:'trigplanar',bp:3,share:3,lp_total:9,center:0,centerLP:0,
  desc:'결합쌍 3 | 공유 전자쌍 3 | 비공유 전자쌍 9 (F 각 3쌍)',
  example:'중심 B 비공유 전자쌍 없음. 루이스 산.',
@@ -218,7 +238,7 @@ const MOLECULES=[
    {el:'F',color:0x00bbbb,x:1.9*Math.cos(4*Math.PI/3),y:0,z:1.9*Math.sin(4*Math.PI/3)},
  ],bonds:[[0,1],[0,2],[0,3]]},
 
-{cat:'평면삼각형',formula:'BCl₃',name:'삼염화붕소',shape:'평면삼각형',angle:'120°',
+{tier:'flat',cat:'평면삼각형',formula:'BCl₃',name:'삼염화붕소',shape:'평면삼각형',angle:'120°',
  tag:'trigplanar',bp:3,share:3,lp_total:9,center:0,centerLP:0,
  desc:'결합쌍 3 | 공유 전자쌍 3 | 비공유 전자쌍 9 (Cl 각 3쌍)',
  example:'BF₃·BH₃와 동일 구조.',
@@ -229,7 +249,7 @@ const MOLECULES=[
    {el:'Cl',color:0x22cc55,x:2.0*Math.cos(4*Math.PI/3),y:0,z:2.0*Math.sin(4*Math.PI/3)},
  ],bonds:[[0,1],[0,2],[0,3]]},
 
-{cat:'평면삼각형',formula:'CH₂O',name:'폼알데하이드',shape:'평면삼각형',angle:'120°',
+{tier:'flat',cat:'평면삼각형',formula:'CH₂O',name:'폼알데하이드',shape:'평면삼각형',angle:'120°',
  tag:'trigplanar',bp:3,share:4,lp_total:2,center:0,centerLP:0,
  desc:'결합쌍 3 | 공유 전자쌍 4 (C=O 이중결합) | 비공유 전자쌍 2 (O 2쌍)',
  example:'C=O 이중결합 포함. 중심 C 비공유 전자쌍 없음. 극성 분자.',
@@ -240,7 +260,7 @@ const MOLECULES=[
    {el:'H',color:0xcccccc,x:-0.9,y:0,z:-1.5},
  ],bonds:[[0,1],[0,2],[0,3]],doubleBonds:[[0,1]]},
 
-{cat:'삼각뿔/정사면체',formula:'NH₃',name:'암모니아',shape:'삼각뿔형',angle:'107°',
+{tier:'solid',cat:'삼각뿔형',formula:'NH₃',name:'암모니아',shape:'삼각뿔형',angle:'107°',
  tag:'tetrahedral',bp:3,share:3,lp_total:1,center:0,centerLP:1,
  desc:'결합쌍 3 | 공유 전자쌍 3 | 비공유 전자쌍 1 (N 1쌍)',
  example:'비공유 전자쌍 1개 → 109.5°보다 좁아짐. 극성 분자.',
@@ -252,7 +272,7 @@ const MOLECULES=[
  ],bonds:[[0,1],[0,2],[0,3]],
  lpDirs:[new THREE.Vector3(0,1,0)]},
 
-{cat:'삼각뿔/정사면체',formula:'CH₄',name:'메테인',shape:'정사면체형',angle:'109.5°',
+{tier:'solid',cat:'정사면체형',formula:'CH₄',name:'메테인',shape:'정사면체형',angle:'109.5°',
  tag:'tetrahedral',bp:4,share:4,lp_total:0,center:0,centerLP:0,
  desc:'결합쌍 4 | 공유 전자쌍 4 | 비공유 전자쌍 0',
  example:'완전 대칭. 무극성.',
@@ -264,7 +284,7 @@ const MOLECULES=[
    {el:'H',color:0xcccccc,x:1.1,y:-1.1,z:-1.1},
  ],bonds:[[0,1],[0,2],[0,3],[0,4]]},
 
-{cat:'삼각뿔/정사면체',formula:'CCl₄',name:'사염화탄소',shape:'정사면체형',angle:'109.5°',
+{tier:'solid',cat:'정사면체형',formula:'CCl₄',name:'사염화탄소',shape:'정사면체형',angle:'109.5°',
  tag:'tetrahedral',bp:4,share:4,lp_total:12,center:0,centerLP:0,
  desc:'결합쌍 4 | 공유 전자쌍 4 | 비공유 전자쌍 12 (Cl 각 3쌍)',
  example:'극성 결합이지만 대칭 구조 → 무극성 분자.',
@@ -276,7 +296,7 @@ const MOLECULES=[
    {el:'Cl',color:0x22cc55,x:1.5,y:-1.5,z:-1.5},
  ],bonds:[[0,1],[0,2],[0,3],[0,4]]},
 
-{cat:'삼각뿔/정사면체',formula:'CH₂Cl₂',name:'다이클로로메테인',shape:'정사면체형',angle:'109.5°',
+{tier:'solid',cat:'정사면체형',formula:'CH₂Cl₂',name:'다이클로로메테인',shape:'정사면체형',angle:'109.5°',
  tag:'tetrahedral',bp:4,share:4,lp_total:6,center:0,centerLP:0,
  desc:'결합쌍 4 | 공유 전자쌍 4 | 비공유 전자쌍 6 (Cl 각 3쌍)',
  example:'정사면체 구조이지만 비대칭 → 극성 분자.',
@@ -289,20 +309,47 @@ const MOLECULES=[
  ],bonds:[[0,1],[0,2],[0,3],[0,4]]},
 ];
 
-const CATS=[...new Set(MOLECULES.map(m=>m.cat))];
-let curCat=CATS[0],curIdx=0,showLP=false;
+const TIERS=[
+  {id:'flat', label:'평면형'},
+  {id:'solid', label:'입체형'},
+];
+const CATS_BY_TIER={
+  flat:[...new Set(MOLECULES.filter(m=>m.tier==='flat').map(m=>m.cat))],
+  solid:[...new Set(MOLECULES.filter(m=>m.tier==='solid').map(m=>m.cat))],
+};
 
+let curTier='flat', curCat=CATS_BY_TIER['flat'][0], curIdx=0, showLP=false;
+
+const tier1El=document.getElementById('tier1');
 const catsEl=document.getElementById('cats');
 const gridEl=document.getElementById('molGrid');
-CATS.forEach(c=>{
-  const b=document.createElement('button');
-  b.className='cat-btn'+(c===curCat?' active':'');
-  b.textContent=c;
-  b.onclick=()=>{curCat=c;curIdx=0;renderCats();renderGrid();selectMol(0);};
-  catsEl.appendChild(b);
-});
-function renderCats(){catsEl.querySelectorAll('.cat-btn').forEach(b=>b.classList.toggle('active',b.textContent===curCat));}
-function getMols(){return MOLECULES.filter(m=>m.cat===curCat);}
+
+function renderTier1(){
+  tier1El.innerHTML='';
+  TIERS.forEach(t=>{
+    const b=document.createElement('button');
+    b.className='t1-btn'+(curTier===t.id?' active '+t.id:'');
+    b.textContent=t.label;
+    b.onclick=()=>{
+      curTier=t.id;
+      curCat=CATS_BY_TIER[t.id][0];
+      curIdx=0;
+      renderTier1(); renderCats(); renderGrid(); selectMol(0);
+    };
+    tier1El.appendChild(b);
+  });
+}
+function renderCats(){
+  catsEl.innerHTML='';
+  CATS_BY_TIER[curTier].forEach(c=>{
+    const b=document.createElement('button');
+    b.className='cat-btn'+(c===curCat?' active':'');
+    b.textContent=c;
+    b.onclick=()=>{curCat=c;curIdx=0;renderCats();renderGrid();selectMol(0);};
+    catsEl.appendChild(b);
+  });
+}
+function getMols(){return MOLECULES.filter(m=>m.tier===curTier&&m.cat===curCat);}
 function renderGrid(){
   gridEl.innerHTML='';
   getMols().forEach((m,i)=>{
@@ -512,7 +559,7 @@ function resize(){
   labelLayer.style.width=w+'px';labelLayer.style.height=h+'px';
 }
 window.addEventListener('resize',resize);resize();
-renderGrid();selectMol(0);
+renderTier1();renderCats();renderGrid();selectMol(0);
 
 canvas.addEventListener('mousedown',e=>{isDrag=true;lx=e.clientX;ly=e.clientY;});
 window.addEventListener('mousemove',e=>{
